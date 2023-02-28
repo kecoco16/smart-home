@@ -1,0 +1,111 @@
+version: '3'
+services:
+  portainer:
+    container_name: portainer
+    image: portainer/portainer-ce:alpine
+    restart: unless-stopped
+    env_file: ".env"
+    command: -H unix:///var/run/docker.sock
+    ports:
+      - "9000:9000"
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./portainer/data:/data"
+
+  mosquitto:
+    image: eclipse-mosquitto
+    container_name: mosquitto
+    restart: unless-stopped
+    env_file: ".env"
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      - ./mosquitto:/mosquitto
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    ports:
+      - 1883:1883
+      - 9001:9001  
+
+  zigbee2mqtt:
+    container_name: zigbee2mqtt
+    image: koenkk/zigbee2mqtt
+    restart: unless-stopped
+    env_file: ".env"
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      - ./zigbee2mqtt/data:/app/data
+      - /run/udev:/run/udev:ro
+    ports:
+      - 8080:8080
+    devices:
+      - /dev/serial/by-id/usb-ITEAD_SONOFF_Zigbee_3.0_USB_Dongle_Plus_V2_20221031185008-if00:/dev/ttyACM0
+
+  duplicati:
+    container_name: duplicati
+    image: lscr.io/linuxserver/duplicati:latest
+    restart: unless-stopped
+    env_file: ".env"
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    environment:
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - ./duplicati/config:/config
+      - ./:/source
+    ports:
+      - 8200:8200
+
+  plex:
+    container_name: plex
+    image: lscr.io/linuxserver/plex:latest
+    restart: unless-stopped
+    env_file: ".env"
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    network_mode: host
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - VERSION=docker
+    volumes:
+      - ./plex/config:/config
+      - ./plex/tv:/tv
+      - ./plex/movies:/movies
+
+  homeassistant:
+    container_name: homeassistant
+    image: "ghcr.io/home-assistant/home-assistant:stable"
+    restart: unless-stopped
+    env_file: ".env"
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      - ./home-assistant/config:/config
+      - /etc/localtime:/etc/localtime:ro
+    privileged: true
+    network_mode: host
+
+volumes:
+  portainer:
+  mosquitto:
+  zigbee2mqtt:
+  duplicati:
+  plex:
+  home-assistant:
